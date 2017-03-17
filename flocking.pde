@@ -1,5 +1,15 @@
 Flock flock;
 PFont f;
+boolean separation = true;
+boolean alignment = true;
+boolean cohesion = true;
+boolean radi = false;
+
+float separationTime = 0;
+float alignmentTime = 0;
+float cohesionTime = 0;
+float going = 4;
+
 
 void setup() {
 //  frameRate(20);
@@ -11,9 +21,8 @@ void setup() {
   }
   
   // Create font
-  f = createFont("FiraMono.tff", 12);
+  f = createFont("FiraMono.tff", 16);
   textFont(f);
-  textAlign(LEFT, BOTTOM);
   
 }
 
@@ -26,9 +35,53 @@ void draw() {
   
   flock.run();
   
-  text(flock.boids.size(), 200, 200);
+  // Write number of boids
+  fill(200);
+  textAlign(LEFT, BOTTOM);
+  text("NUM: " + flock.boids.size(), 10, height - 10);
+  
+  // Write separation status
+  if (separationTime >= 40) {
+    separationTime -= going;
+    fill(separationTime);
+    textAlign(RIGHT, BOTTOM);
+    String status = separation ? "ON" : "OFF";
+    text("SEPARATION " + status, width - 10, height - 10);
+  }
+  if (alignmentTime >= 40) {
+    alignmentTime -= going;
+    fill(alignmentTime);
+    textAlign(RIGHT, BOTTOM);
+    String status = alignment ? "ON" : "OFF";
+    text("ALIGNMENT " + status, width - 10, height - 10);
+  }
+  if (cohesionTime >= 40) {
+    cohesionTime -= going;
+    fill(cohesionTime);
+    textAlign(RIGHT, BOTTOM);
+    String status = cohesion ? "ON" : "OFF";
+    text("COHESION " + status, width - 10, height - 10);
+  }
+  
 }
 
+void keyPressed() {
+  if (key == '1') {
+    separation = !separation;
+    separationTime = 255;
+  }
+  else if (key == '2') {
+    alignment = !alignment;
+    alignmentTime = 255;
+  }
+  else if (key == '3') {
+    cohesion = !cohesion;
+    cohesionTime = 255;
+  }
+  else if (key == '4') {
+    radi = !radi;
+  }
+}
 
 class Flock {
   ArrayList<Boid> boids;
@@ -46,7 +99,6 @@ class Flock {
   void addBoid(Boid b) {
     boids.add(b);
   }
-  
 }
 
 
@@ -111,30 +163,35 @@ class Boid {
   }
   
   void render() {
-//    // Draw the radi
-//    stroke(200);
-//    ellipse(position.x, position.y, radiusS, radiusS);
-//    stroke(150);
-//    ellipse(position.x, position.y, radiusA, radiusA);
-//    stroke(100);
-//    ellipse(position.x, position.y, radiusC, radiusC);
+    // Draw the radi
+    if (radi) {
+      fill(0, 0);
+      if (separation) {
+        stroke(200);
+        ellipse(position.x, position.y, radiusS, radiusS);
+      }
+      if (alignment) {
+        stroke(150);
+        ellipse(position.x, position.y, radiusA, radiusA);
+      }
+      if (cohesion) {
+        stroke(100);
+        ellipse(position.x, position.y, radiusC, radiusC);
+      }
+    }
 
     // Draw the boid
     float theta = velocity.heading() - radians(90);
-    
     fill(200, 100);  // grey fill
     stroke(255);  // white stroke
-    
     pushMatrix();
     translate(position.x, position.y);
     rotate(theta);
-    
     beginShape(TRIANGLES);
     vertex(0, r);
     vertex(r / 2, - r);
     vertex(- r / 2, - r);
     endShape();
-    
     popMatrix();
   }
   
@@ -170,7 +227,6 @@ class Boid {
     
     // Loop through all the boids
     for (Boid neighbour : boids) {
-      
       PVector forward = velocity.get();
       forward.normalize();
       PVector backward = forward.get();
@@ -181,38 +237,41 @@ class Boid {
       if (distance > 0.0) {
         PVector diffVector = neighbour.position.get();
         diffVector.sub(position);
-                
-        // Separation force
-        if (distance < radiusS) {
-          if (!checkWithinAngle(backward, diffVector, blindAngleBackS)) {
-            numS += 1;
-            PVector tmpDirS = diffVector.get();
-            tmpDirS.div(sq(distance));
-            dirS.add(tmpDirS);
+        
+        if (separation) {
+          // Separation force
+          if (distance < radiusS) {
+            if (!checkWithinAngle(backward, diffVector, blindAngleBackS)) {
+              numS += 1;
+              PVector tmpDirS = diffVector.get();
+              tmpDirS.div(sq(distance));
+              dirS.add(tmpDirS);
+            }
           }
         }
-        
-        // Alignment force
-        else if (distance < radiusA) {
-          if (!checkWithinAngle(backward, diffVector, blindAngleBackA) && !checkWithinAngle(forward, diffVector, blindAngleFrontA)) {
-            numA += 1;
-            PVector tmpDirA = neighbour.velocity.get();
-            tmpDirA.normalize();
-            dirA.add(tmpDirA);
+        if (alignment) {
+          // Alignment force
+          if (distance < radiusA) {
+            if (!checkWithinAngle(backward, diffVector, blindAngleBackA) && !checkWithinAngle(forward, diffVector, blindAngleFrontA)) {
+              numA += 1;
+              PVector tmpDirA = neighbour.velocity.get();
+              tmpDirA.normalize();
+              dirA.add(tmpDirA);
+            }
           }
         }
-        
-        // Cohesion
-        else if (distance >= radiusA && distance < radiusC) {
-          if (!checkWithinAngle(backward, diffVector, blindAngleBackC)) {
-            numC += 1;
-            PVector tmpDirC = diffVector.get();
-            tmpDirC.div(distance);
-            dirC.add(tmpDirC);
+        if (cohesion) {
+          // Cohesion force
+          if (distance < radiusC) {
+            if (!checkWithinAngle(backward, diffVector, blindAngleBackC)) {
+              numC += 1;
+              PVector tmpDirC = diffVector.get();
+              tmpDirC.div(distance);
+              dirC.add(tmpDirC);
+            }
           }
         }
       }
-      
     }
     
     if (numS != 0) {  // If there are fish in the separation radius
@@ -250,12 +309,8 @@ class Boid {
     forceNet.add(forceRand);
     
     forceNet.limit(forceMax);
-    // Add force to acceleration
     applyForce(forceNet);
-//    println("forceNet: " + forceNet);
-    
   }
-
 }
     
 // Returns true if within the angle limit (in the blindangle)
