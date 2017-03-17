@@ -29,10 +29,6 @@ void setup() {
 void draw() {
   background(40);
   
-  if (mousePressed) {
-    flock.addBoid(new Boid(mouseX, mouseY));
-  }
-  
   flock.run();
   
   // Write number of boids
@@ -63,6 +59,11 @@ void draw() {
     text("COHESION " + status, width - 10, height - 10);
   }
   
+}
+
+
+void mousePressed() {
+  flock.addBoid(new Boid(mouseX, mouseY));
 }
 
 void keyPressed() {
