@@ -10,9 +10,11 @@ float alignmentTime = 0;
 float cohesionTime = 0;
 float going = 4;
 
+float deltaTime = 0.03;
+
 
 void setup() {
-//  frameRate(20);
+  frameRate(1/deltaTime);
   size(800, 600);
   flock = new Flock();
   for (int i = 0; i < 20; i++) {
@@ -60,7 +62,6 @@ void draw() {
   }
   
 }
-
 
 void mousePressed() {
   flock.addBoid(new Boid(mouseX, mouseY));
@@ -110,8 +111,7 @@ class Boid {
   
   float r = 1;
   float bodylength = 2;
-  float forceMax = 3;
-  float speedMax = 2;
+  float forceMax = 0.5;
   float speedCruise = 2;
   
   float radiusS = 2;  // Separation radius
@@ -124,7 +124,7 @@ class Boid {
   
   float weightS = 10;
   float weightA = 5;
-  float weightC = 2;
+  float weightC = 9;
   float relaxationTime = 0.2;
   float weightRand = 0.5;
   
@@ -188,11 +188,7 @@ class Boid {
     pushMatrix();
     translate(position.x, position.y);
     rotate(theta);
-    beginShape(TRIANGLES);
-    vertex(0, r);
-    vertex(r / 2, - r);
-    vertex(- r / 2, - r);
-    endShape();
+    triangle(0, r, r/2, -r, -r/2, -r);
     popMatrix();
   }
   
@@ -238,7 +234,7 @@ class Boid {
       if (distance > 0.0) {
         PVector diffVector = neighbour.position.get();
         diffVector.sub(position);
-        
+                
         if (separation) {
           // Separation force
           if (distance < radiusS) {
@@ -252,7 +248,7 @@ class Boid {
         }
         if (alignment) {
           // Alignment force
-          if (distance < radiusA) {
+          if (radiusS < distance && distance < radiusA) {
             if (!checkWithinAngle(backward, diffVector, blindAngleBackA) && !checkWithinAngle(forward, diffVector, blindAngleFrontA)) {
               numA += 1;
               PVector tmpDirA = neighbour.velocity.get();
@@ -263,7 +259,7 @@ class Boid {
         }
         if (cohesion) {
           // Cohesion force
-          if (distance < radiusC) {
+          if (radiusA < distance && distance < radiusC) {
             if (!checkWithinAngle(backward, diffVector, blindAngleBackC)) {
               numC += 1;
               PVector tmpDirC = diffVector.get();
