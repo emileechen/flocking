@@ -4,11 +4,13 @@ boolean separation = true;
 boolean alignment = true;
 boolean cohesion = true;
 boolean radii = false;
+boolean dRadii = true;  // Dynamic radius of perception
 
 float separationTime = 0;
 float alignmentTime = 0;
 float cohesionTime = 0;
 float radiiTime = 0;
+float dRadiiTime = 0;
 float going = 7;
 
 float deltaTime = 0.03;
@@ -68,6 +70,13 @@ void draw() {
     String status = radii ? "ON" : "OFF";
     text("RADII " + status, width - 10, height - 10);
   }
+  if (dRadiiTime >= 40) {
+    dRadiiTime -= going;
+    fill(dRadiiTime);
+    textAlign(RIGHT, BOTTOM);
+    String status = dRadii ? "ON" : "OFF";
+    text("DYNAMIC RADII " + status, width - 10, height - 10);
+  }
   
 }
 
@@ -91,6 +100,14 @@ void keyPressed() {
   else if (key == '4') {
     radii = !radii;
     radiiTime = 255;
+  }
+  else if (key == '5') {
+    dRadii = !dRadii;
+    dRadiiTime = 255;
+    for (Boid b : flock.boids) {
+      b.radiusA = b.radiusAmax;
+      b.radiusC = b.radiusCmax;
+    }
   }
 }
 
@@ -222,19 +239,12 @@ class Boid {
     }
   }
   
-  // Given number of neighbours in radius, return the new radius.
+  // Given number of neighbours in radius, interpolate a new radius.
   float calcPerceptionRadius(float radius, float radiusMin, float radiusMax, int num) {
     float s = smoothness * deltaTime;
     // Density dependent term
     float d = radiusMax - (influence * num);
-//    println("num: " + num);
-//    println("min: " + radiusMin);
-//    println("max: " + radiusMax);
-//    println("smoothness * deltaTime: " + s);
-//    println("radiusMax - (influence * num): " + d);
-//    println((1 - s) * radius + s * d);
-//    println("-----");
-    return max(radiusMin, (1 - s) * radius + s * d);
+    return max(radiusMin, ((1 - s) * radius) + (s * d));
   }
   
   void flock(ArrayList<Boid> boids) {
@@ -337,9 +347,11 @@ class Boid {
     forceNet.limit(forceMax);
     applyForce(forceNet);
     
-    // Calculate and update perception radii
-    radiusA = calcPerceptionRadius(radiusA, radiusS, radiusAmax, numA);
-    radiusC = calcPerceptionRadius(radiusC, radiusAmax, radiusCmax, numC);
+    if (dRadii) {
+      // Calculate and update perception radii
+      radiusA = calcPerceptionRadius(radiusA, radiusS, radiusAmax, numA);
+      radiusC = calcPerceptionRadius(radiusC, radiusAmax, radiusCmax, numC);
+    }
   }
 }
 
