@@ -20,7 +20,7 @@ void setup() {
   frameRate(1/deltaTime);
   size(800, 600);
   flock = new Flock();
-  for (int i = 0; i < 20; i++) {
+  for (int i = 0; i < 50; i++) {
 //    flock.addBoid(new Boid(width/2, height/2));
     flock.addBoid(new Boid(random(width/4, width/4*3), random(height/4, height/4*3)));
   }
@@ -163,6 +163,7 @@ class Boid {
   
   Boid(float x, float y) {
     position = new PVector(x, y);
+//    velocity = new PVector(0, 0);
     velocity = PVector.random2D();
     acceleration = new PVector(0, 0);
     
@@ -196,30 +197,39 @@ class Boid {
   }
   
   void render() {
+    float theta = velocity.heading();
+    
     // Draw the radi
     if (radii) {
-      fill(0, 0);
+      noFill();
+      pushMatrix();
+      translate(position.x, position.y);
+      rotate(theta + PI);
       if (separation) {
         stroke(200);
-        ellipse(position.x, position.y, radiusS, radiusS);
+        arc(0, 0, radiusS, radiusS, radians(blindAngleBackS), TWO_PI - radians(blindAngleBackS), PIE);
+//        ellipse(position.x, position.y, radiusS, radiusS);
       }
       if (alignment) {
         stroke(150);
-        ellipse(position.x, position.y, radiusA, radiusA);
+        arc(0, 0, radiusA, radiusA, radians(blindAngleBackA), PI - radians(blindAngleFrontA), PIE);
+        arc(0, 0, radiusA, radiusA, PI + radians(blindAngleFrontA), TWO_PI - radians(blindAngleBackA), PIE);
+//        ellipse(position.x, position.y, radiusA, radiusA);
       }
       if (cohesion) {
         stroke(100);
-        ellipse(position.x, position.y, radiusC, radiusC);
+        arc(0, 0, radiusC, radiusC, radians(blindAngleBackC), TWO_PI - radians(blindAngleBackC), PIE);
+//        ellipse(position.x, position.y, radiusC, radiusC);
       }
+      popMatrix();
     }
 
     // Draw the boid
-    float theta = velocity.heading() - radians(90);
     fill(200, 100);  // grey fill
     stroke(255);  // white stroke
     pushMatrix();
     translate(position.x, position.y);
-    rotate(theta);
+    rotate(theta - radians(90));
     triangle(0, r, r/2, -r, -r/2, -r);
     popMatrix();
   }
@@ -248,7 +258,6 @@ class Boid {
   }
   
   void flock(ArrayList<Boid> boids) {
-    
     int numS = 0;
     int numA = 0;
     int numC = 0;
@@ -352,6 +361,7 @@ class Boid {
       radiusA = calcPerceptionRadius(radiusA, radiusS, radiusAmax, numA);
       radiusC = calcPerceptionRadius(radiusC, radiusAmax, radiusCmax, numC);
     }
+    
   }
 }
 
