@@ -3,12 +3,13 @@ PFont f;
 boolean separation = true;
 boolean alignment = true;
 boolean cohesion = true;
-boolean radi = false;
+boolean radii = false;
 
 float separationTime = 0;
 float alignmentTime = 0;
 float cohesionTime = 0;
-float going = 4;
+float radiiTime = 0;
+float going = 7;
 
 float deltaTime = 0.03;
 
@@ -60,6 +61,13 @@ void draw() {
     String status = cohesion ? "ON" : "OFF";
     text("COHESION " + status, width - 10, height - 10);
   }
+  if (radiiTime >= 40) {
+    radiiTime -= going;
+    fill(radiiTime);
+    textAlign(RIGHT, BOTTOM);
+    String status = radii ? "ON" : "OFF";
+    text("RADII " + status, width - 10, height - 10);
+  }
   
 }
 
@@ -81,7 +89,8 @@ void keyPressed() {
     cohesionTime = 255;
   }
   else if (key == '4') {
-    radi = !radi;
+    radii = !radii;
+    radiiTime = 255;
   }
 }
 
@@ -114,12 +123,18 @@ class Boid {
   float forceMax = 0.5;
   float speedCruise = 2;
   
+  // Perception radius interpolation weights
+  float smoothness = 0.5;
+  float influence = 5;
+  
   float radiusS = 2;  // Separation radius
   float blindAngleBackS = 30;
   float radiusA = 5;  // Alignment radius
+  float radiusAmax = 5;
   float blindAngleBackA = 30;
   float blindAngleFrontA = 30;
   float radiusC = 15;  // Cohesion radius
+  float radiusCmax = 15;
   float blindAngleBackC = 45;
   
   float weightS = 10;
@@ -138,7 +153,9 @@ class Boid {
     bodylength *= r;
     radiusS *= bodylength;
     radiusA *= bodylength;
+    radiusAmax *= bodylength;
     radiusC *= bodylength;
+    radiusCmax *= bodylength;
   }
   
   void run(ArrayList<Boid> boids) {
@@ -155,8 +172,6 @@ class Boid {
   void update() {
     // Update velocity
     velocity.add(acceleration);
-//    // Limit speed
-//    velocity.limit(speedMax);
     // Update position
     position.add(velocity);
     // Resert acceleration
@@ -165,7 +180,7 @@ class Boid {
   
   void render() {
     // Draw the radi
-    if (radi) {
+    if (radii) {
       fill(0, 0);
       if (separation) {
         stroke(200);
@@ -205,6 +220,21 @@ class Boid {
     if (position.y > height + r) {
       position.y = - r;
     }
+  }
+  
+  // Given number of neighbours in radius, return the new radius.
+  float calcPerceptionRadius(float radius, float radiusMin, float radiusMax, int num) {
+    float s = smoothness * deltaTime;
+    // Density dependent term
+    float d = radiusMax - (influence * num);
+//    println("num: " + num);
+//    println("min: " + radiusMin);
+//    println("max: " + radiusMax);
+//    println("smoothness * deltaTime: " + s);
+//    println("radiusMax - (influence * num): " + d);
+//    println((1 - s) * radius + s * d);
+//    println("-----");
+    return max(radiusMin, (1 - s) * radius + s * d);
   }
   
   void flock(ArrayList<Boid> boids) {
@@ -270,7 +300,6 @@ class Boid {
         }
       }
     }
-    
     if (numS != 0) {  // If there are fish in the separation radius
       dirS.mult(- 1.0 / numS);
       dirS.normalize();
@@ -307,9 +336,14 @@ class Boid {
     
     forceNet.limit(forceMax);
     applyForce(forceNet);
+    
+    // Calculate and update perception radii
+    radiusA = calcPerceptionRadius(radiusA, radiusS, radiusAmax, numA);
+    radiusC = calcPerceptionRadius(radiusC, radiusAmax, radiusCmax, numC);
   }
 }
-    
+
+
 // Returns true if within the angle limit (in the blindangle)
 boolean checkWithinAngle(PVector a, PVector b, float angle) {
   PVector v = a.get();
